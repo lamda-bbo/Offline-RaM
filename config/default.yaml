@@ -1,0 +1,34 @@
+use_wandb: True
+run_type: debug
+
+seed: 1
+task: Superconductor-RandomForest-v0
+
+list_length: 1000
+num_samples: 10000
+
+normalize_xs: True 
+normalize_ys: True 
+normalize_logits: True
+num_solutions: 128
+eval_elites: True
+
+batch_size: 128
+require_valid: True 
+valid_ratio: 0.2
+drop_last: True 
+
+loss: MSE
+hidden_dim: [2048, 2048]
+n_epochs: 100
+lr: 0.0003
+weight_decay: 0.00001
+output_dim: 1
+
+x_opt_lr: 
+  discrete: 0.1
+  continuous: 0.001
+x_opt_step: 
+  discrete: 100 
+  continuous: 200
+x_opt_method: Adam

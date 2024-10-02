@@ -1,0 +1,6 @@
+weighing_scheme: lambdaRank_scheme
+k: null
+sigma: 1.
+mu: 10.
+reduction: sum
+reduction_log: binary

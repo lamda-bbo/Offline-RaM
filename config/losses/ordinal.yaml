@@ -1,0 +1,3 @@
+num_classes: 51 
+train_cutpoints: False 
+scale: 20.0
