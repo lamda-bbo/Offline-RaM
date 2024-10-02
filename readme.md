@@ -37,10 +37,10 @@ pip install gym==0.13.1 params_proto==2.9.6 scikit-image==0.17.2 scikit-video==1
 
 ## Main Experiments
 
-For a quick comparison, please first set your variables in ``run.sh`` as 
+For a quick run, please first set your variables in ``run.sh`` as 
 ```bash
 MAX_JOBS=8   # how many jobs do you want to run in parallel
-AVAILABLE_GPUS="0 1 2 3"  # ids of your available
+AVAILABLE_GPUS="0 1 2 3"  # ids of your available GPUs
 MAX_RETRIES=0  # number of retries when your program fails
 ```
 then run ``bash run.sh`` in your terminal directly. 
@@ -76,7 +76,7 @@ tasks = [
 
 ## Availability of Model Weights
 
-We promise to make our code as well as our model weights publicly available as soon as our paper is accepted. 
+We promise to make our code as well as model weights publicly available once our paper is accepted. 
 
 ## Code Reference
 
