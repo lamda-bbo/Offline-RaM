@@ -1,6 +1,8 @@
 # Offline Model-Based Optimization by Learning to Rank
 
-Official implementations of ICLR'25 submission paper "Offline Model-Based Optimization by Learning to Rank". 
+Official implementations of ICLR'25 paper "Offline Model-Based Optimization by Learning to Rank". 
+
+> **Ahead of all**: We promise to open-source our model weights once we finish our recent other works lol^ ^
 
 ## Environment installation
 
@@ -50,7 +52,7 @@ For details, you can run our proposed method as
 ```bash
 python main.py --task <task> --loss <loss> --seed <seed>
 ```
-where the options for argument ``--task`` and ``loss`` are:
+where the options for argument ``--task`` and ``--loss`` are:
 ```python
 tasks = [
     "AntMorphology-Exact-v0",
