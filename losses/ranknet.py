@@ -1,33 +1,27 @@
 import torch
-import torch.nn as nn 
+import torch.nn as nn
 
 from .base import LossFunction
 
 
 class RankNetLossFunction(LossFunction):
-    
+
     def __init__(
-        self,
-        weight_by_diff: bool = False,
-        weight_by_diff_powed: bool = False
+        self, weight_by_diff: bool = False, weight_by_diff_powed: bool = False
     ) -> None:
-        
+
         super(RankNetLossFunction, self).__init__()
         self.weight_by_diff = weight_by_diff
         self.weight_by_diff_powed = weight_by_diff_powed
-        
-    def forward(
-        self, 
-        y_pred: torch.Tensor, 
-        y_true: torch.Tensor
-    ) -> torch.Tensor:
-        
+
+    def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+
         # y_pred = y_pred.view(-1)
         # y_true = y_true.view(-1)
 
         indices = torch.arange(y_true.size(0), device=y_true.device).unsqueeze(1)
         pairs_indices = indices.repeat(1, y_true.size(0))
-        
+
         pairs_true = y_true[pairs_indices], y_true[pairs_indices.T]
         selected_pred = y_pred[pairs_indices], y_pred[pairs_indices.T]
 

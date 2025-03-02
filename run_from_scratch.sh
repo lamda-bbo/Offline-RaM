@@ -1,5 +1,5 @@
 tasks="AntMorphology-Exact-v0 DKittyMorphology-Exact-v0 Superconductor-RandomForest-v0 TFBind8-Exact-v0 TFBind10-Exact-v0"
-losses="listnet"
+losses="listnet rankcosine"
 
 MAX_JOBS=8
 AVAILABLE_GPUS="0 1 2 3"
@@ -52,7 +52,7 @@ for task in $tasks; do
             check_jobs
             gpu_allocation=$(get_gpu_allocation $job_number)
             ((job_number++))
-            run_with_retry "main.py \
+            run_with_retry "main_from_scratch.py \
                 --task=${task} \
                 --loss=${loss} \
                 --expt-name=RaM \

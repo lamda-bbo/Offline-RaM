@@ -1,15 +1,13 @@
-import torch 
-import torch.nn as nn 
-from .base import LossFunction 
+import torch
+import torch.nn as nn
+
+from .base import LossFunction
+
 
 class SoftmaxLossFunction(LossFunction):
-    
-    def forward(
-        self,
-        y_pred: torch.Tensor,
-        y_true: torch.Tensor
-    ) -> torch.Tensor:
-        
+
+    def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+
         y_pred = y_pred.float()
         y_true = y_true.float()
 

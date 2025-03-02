@@ -1,5 +1,6 @@
 import argparse
 import datetime
+import os
 from argparse import Namespace
 from copy import deepcopy
 
@@ -8,16 +9,16 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from design_bench.task import Task
-from huggingface_hub import hf_hub_download
-from safetensors import safe_open
+from torch.optim import Adam
 
 import wandb
-from hf_wrapped_model import MLPConfig, SimpleMLP
 from losses import get_loss_fn
 from metrics import cal_overlap_auc, spearman_corr
+from model import SimpleMLP
 from search import adam_search, grad_search
 from utils import (
     build_data_loader,
+    create_special_dataset_fast_unique,
     load_default_config,
     load_elite_data,
     record_from_dict,
@@ -61,7 +62,7 @@ def run(args: Namespace):
         ts = datetime.datetime.utcnow() + datetime.timedelta(hours=+8)
         ts_name = f"-ts-{ts.year}-{ts.month}-{ts.day}_{ts.hour}-{ts.minute}-{ts.second}"
 
-        # wandb.login(key=args.wandb_api)
+        wandb.login(key=args.wandb_api)
 
         wandb.init(
             project="Offline-Relation",
@@ -79,32 +80,148 @@ def run(args: Namespace):
     x_elites = torch.from_numpy(x_elites).to(**_TKWARGS)
     y_elites = torch.from_numpy(y_elites).to(**_TKWARGS)
 
+    x_train, y_train = create_special_dataset_fast_unique(
+        x=x, y=y, m=args.list_length, num_samples=args.num_samples
+    )
+
+    train_loader, validate_loader = build_data_loader(
+        x=x_train,
+        y=y_train,
+        batch_size=args.batch_size,
+        require_valid=args.require_valid,
+        valid_ratio_if_valid=args.valid_ratio,
+        drop_last=args.drop_last,
+    )
+
     iid_loader, _ = build_data_loader(
         x=x, y=y, batch_size=args.batch_size * 2, require_valid=False, drop_last=False
     )
 
-    forward_model = SimpleMLP(MLPConfig(input_dim=x.shape[1]))
-
-    weights_path = hf_hub_download(
-        repo_id="trxcc2002/Offline-RaM-ListNet",
-        filename=f"Offline-RaM-ListNet-{args.task}-seed{args.seed}/model.safetensors",
-    )
-    state_dict = {}
-    with safe_open(weights_path, framework="pt", device="cpu") as f:
-        for k in f.keys():
-            state_dict[k] = f.get_tensor(k)
-    forward_model.load_state_dict(state_dict)
-    forward_model.to(**_TKWARGS)
+    forward_model = SimpleMLP(
+        input_dim=x.shape[1], hidden_dim=args.hidden_dim, output_dim=args.output_dim
+    ).to(**_TKWARGS)
 
     loss_fn = get_loss_fn(args.loss, **args.loss_config)
+    optimizer = Adam(
+        params=forward_model.parameters(), lr=args.lr, weight_decay=args.weight_decay
+    )
 
-    y_pred = forward_model(x_elites)
-    prediction = loss_fn.score(y_pred)
-    elite_mse = F.mse_loss(
-        input=prediction.squeeze(), target=y_elites.squeeze(), reduction="mean"
-    ).item()
-    elite_rank_corr = spearman_corr(prediction, y_elites).item()
-    elite_auc_pr = cal_overlap_auc(prediction, y_elites)
+    min_loss = float("inf")
+    best_state_dict = None
+
+    model_path = f"./model/MLP-{args.loss}-{args.task}-seed{args.seed}.pt"
+    if not args.retrain_model and os.path.exists(model_path):
+        print(f"load from ./model/MLP-{args.loss}-{args.task}-seed{args.seed}.pt")
+        forward_model.load_state_dict(torch.load(model_path))
+        y_pred = forward_model(x_elites)
+        prediction = loss_fn.score(y_pred)
+        elite_mse = F.mse_loss(
+            input=prediction.squeeze(), target=y_elites.squeeze(), reduction="mean"
+        ).item()
+        elite_rank_corr = spearman_corr(prediction, y_elites).item()
+        elite_auc_pr = cal_overlap_auc(prediction, y_elites)
+
+    else:
+
+        for epoch in range(args.n_epochs):
+            statistics = {}
+            total_loss = 0
+
+            forward_model.train()
+            for i, (x_batch, y_batch) in enumerate(train_loader):
+                optimizer.zero_grad()
+                x_batch = x_batch.to(**_TKWARGS)
+                y_batch = y_batch.to(**_TKWARGS)
+
+                y_pred = forward_model(x_batch)
+                loss = loss_fn(y_pred.squeeze(), y_batch.squeeze())
+
+                loss.backward()
+                optimizer.step()
+
+                total_loss += loss.item()
+
+            train_loss = total_loss / len(train_loader)
+
+            statistics["train_loss"] = train_loss
+
+            print(f"Epoch [{epoch+1}/{args.n_epochs}]: Loss = {train_loss}")
+
+            forward_model.eval()
+            total_loss = 0
+            with torch.no_grad():
+                for i, (x_batch, y_batch) in enumerate(validate_loader):
+                    x_batch = x_batch.to(**_TKWARGS)
+                    y_batch = y_batch.to(**_TKWARGS)
+
+                    y_pred = forward_model(x_batch)
+                    loss = loss_fn(y_pred.squeeze(), y_batch.squeeze())
+
+                    total_loss += loss.item()
+
+                validate_loss = total_loss / len(validate_loader)
+                statistics["validate_loss"] = validate_loss
+                print(f"Validation Loss: {validate_loss}")
+
+                if validate_loss < min_loss:
+                    print("🌸 New best epoch! 🌸")
+                    torch.save(
+                        forward_model.state_dict(),
+                        f"model/MLP-{args.loss}-{args.task}-seed{args.seed}.pt",
+                    )
+                    best_state_dict = forward_model.state_dict()
+                    min_loss = validate_loss
+
+                y_all = torch.zeros((0, 1)).to(**_TKWARGS)
+                predcition_all = torch.zeros((0, 1)).to(**_TKWARGS)
+                total_mse = 0
+                total_rank_corr = 0
+
+                for i, (x_batch, y_batch) in enumerate(iid_loader):
+                    x_batch = x_batch.to(**_TKWARGS)
+                    y_batch = y_batch.to(**_TKWARGS)
+
+                    pred = forward_model(x_batch)
+                    total_mse += F.mse_loss(
+                        input=pred.squeeze(), target=y_batch.squeeze(), reduction="mean"
+                    ).item()
+
+                    total_rank_corr += spearman_corr(pred, y_batch).item()
+
+                    if epoch % 50 == 0 or epoch == args.n_epochs - 1:
+                        y_all = torch.cat((y_all, y_batch), dim=0)
+                        predcition_all = torch.cat((predcition_all, pred), dim=0)
+
+                iid_mse = total_mse / len(iid_loader)
+                iid_rank_corr = total_rank_corr / len(iid_loader)
+                statistics["iid/mse"] = iid_mse
+                statistics["iid/rank_corr"] = iid_rank_corr
+
+                if epoch % 50 == 0 or epoch == args.n_epochs - 1:
+                    iid_auc_pr = cal_overlap_auc(predcition_all, y_all)
+                    statistics["iid/AUC-PR"] = iid_auc_pr
+
+                if args.eval_elites:
+                    y_pred = forward_model(x_elites)
+                    prediction = loss_fn.score(y_pred)
+                    elite_mse = F.mse_loss(
+                        input=prediction.squeeze(),
+                        target=y_elites.squeeze(),
+                        reduction="mean",
+                    ).item()
+                    elite_rank_corr = spearman_corr(prediction, y_elites).item()
+                    elite_auc_pr = cal_overlap_auc(prediction, y_elites)
+
+                    statistics["elite/mse"] = elite_mse
+                    statistics["elite/rank_corr"] = elite_rank_corr
+                    statistics["elite/AUC-PR"] = elite_auc_pr
+
+            statistics["learning_rate"] = optimizer.param_groups[0]["lr"]
+
+            if args.use_wandb:
+                wandb.log(statistics)
+
+        forward_model.load_state_dict(best_state_dict)
 
     if args.loss != "mse":
         pred_all = []
@@ -228,7 +345,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--loss",
         type=str,
-        default="listnet",
+        default="mse",
         choices=[
             "sigmoid_ce",
             "bce",
@@ -252,5 +369,7 @@ if __name__ == "__main__":
     default_config = load_default_config(args.loss)
     default_config.update(args.__dict__)
     args.__dict__ = default_config
+
+    os.makedirs("./model", exist_ok=True)
 
     run(args)
