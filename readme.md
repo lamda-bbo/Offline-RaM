@@ -86,11 +86,11 @@ then run ``bash run.sh`` in your terminal directly, where the pretrained model w
 
 To train from scratch, you can run our proposed method via
 ```bash
-bash run_from_scatch.sh
+bash run_from_scratch.sh
 ```
 or
 ```bash
-python main_from_scatch.py --task <task> --loss <loss> --seed <seed>
+python main_from_scratch.py --task <task> --loss <loss> --seed <seed>
 ```
 where the options for argument ``--task`` and ``--loss`` are:
 ```python
