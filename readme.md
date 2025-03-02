@@ -1,6 +1,6 @@
 # Offline Model-Based Optimization by Learning to Rank
 
-Official implementations of ICLR'25 paper "Offline Model-Based Optimization by Learning to Rank". 
+Official implementation of ICLR'25 paper "Offline Model-Based Optimization by Learning to Rank". 
 
 ## Environment installation
 
@@ -25,7 +25,7 @@ pip install Cython==0.29.36 numpy==1.22.0 mujoco_py==2.1.2.14
 # Set up the environment variable
 conda env config vars set LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/.mujoco/mujoco210/bin:/usr/lib/nvidia
 # Reactivate the conda environment to make the variable take effect
-conda activate universal-offline
+conda activate offline-ram
 # Copy C++ dependency libraries
 mkdir ${YOUR_PATH_TO_CONDA}/envs/universal-offline/include/X11
 mkdir ${YOUR_PATH_TO_CONDA}/envs/universal-offline/include/GL
@@ -119,4 +119,4 @@ losses = [
 ## Code Reference
 
 + Our implementation of loss functions is partially inherited from ``allrank``: [https://github.com/allegro/allRank](https://github.com/allegro/allRank).
-+ We sincerely appreciate ``Design-Bench``: [https://github.com/brandontrabucco/design-bench](https://github.com/brandontrabucco/design-bench)
++ We sincerely appreciate ``Design-Bench``: [https://github.com/brandontrabucco/design-bench](https://github.com/brandontrabucco/design-bench).
