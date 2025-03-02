@@ -27,10 +27,10 @@ conda env config vars set LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/.mujoco/mujoco210/b
 # Reactivate the conda environment to make the variable take effect
 conda activate offline-ram
 # Copy C++ dependency libraries
-mkdir ${YOUR_PATH_TO_CONDA}/envs/universal-offline/include/X11
-mkdir ${YOUR_PATH_TO_CONDA}/envs/universal-offline/include/GL
-sudo cp /usr/include/X11/*.h ${YOUR_PATH_TO_CONDA}/envs/universal-offline/include/X11
-sudo cp /usr/include/GL/*.h ${YOUR_PATH_TO_CONDA}/envs/universal-offline/include/GL
+mkdir ${YOUR_PATH_TO_CONDA}/envs/offline-ram/include/X11
+mkdir ${YOUR_PATH_TO_CONDA}/envs/offline-ram/include/GL
+sudo cp /usr/include/X11/*.h ${YOUR_PATH_TO_CONDA}/envs/offline-ram/include/X11
+sudo cp /usr/include/GL/*.h ${YOUR_PATH_TO_CONDA}/envs/offline-ram/include/GL
 # Mujoco Compile
 python -c "import mujoco_py"
 
