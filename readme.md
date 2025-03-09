@@ -120,3 +120,14 @@ losses = [
 
 + Our implementation of loss functions is partially inherited from ``allrank``: [https://github.com/allegro/allRank](https://github.com/allegro/allRank).
 + We sincerely appreciate ``Design-Bench``: [https://github.com/brandontrabucco/design-bench](https://github.com/brandontrabucco/design-bench).
+
+## Citation
+```
+@inproceedings{offline-ltr,
+  title={Offline Model-Based Optimization by Learning to Rank},
+  author={Tan, Rong-Xi and Xue, Ke and Lyu, Shen-Huan and Shang, Haopu and Wang, Yao and Wang, Yaoyuan and Fu, Sheng and Qian, Chao},
+  booktitle={Proceedings of the 13th International Conference on Learning Representations (ICLR)},
+  address={Singapore},
+  year={2025},
+}
+```
